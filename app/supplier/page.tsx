@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import BackArrow from "../components/BackArrow";
 
 // Types
 interface Supplier {
@@ -420,11 +421,14 @@ export default function SuppliersPage() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex flex-col justify-between sm:flex-row sm:items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
-              <p className="mt-1 text-gray-600">
-                Manage your suppliers and contra accounts
-              </p>
+            <div className="flex items-center gap-3">
+              <BackArrow />
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Suppliers</h1>
+                <p className="mt-1 text-gray-600">
+                  Manage your suppliers and contra accounts
+                </p>
+              </div>
             </div>
             <button
               onClick={handleCreateClick}

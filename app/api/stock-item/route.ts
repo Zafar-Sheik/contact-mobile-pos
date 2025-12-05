@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import StockItem, { IStockItem } from "@/lib/models/StockItem";
+import Supplier from "@/lib/models/Supplier";
 import { Types } from "mongoose";
 
 // Helper function to validate stock code format
@@ -13,26 +14,31 @@ function isValidStockCode(code: string): boolean {
 
 // Helper function to format stock item response
 function formatStockItemResponse(stockItem: any) {
+  const price = stockItem.price || { cost: 0, sellingC: 0 };
+  const stockLevel = stockItem.stockLevel || {
+    minStockLevel: 0,
+    maxStockLevel: 0,
+  };
+
   return {
     ...stockItem,
-    _id: stockItem._id.toString(),
-    formattedCost: stockItem.price.cost.toLocaleString("en-ZA", {
+    _id: stockItem._id?.toString ? stockItem._id.toString() : stockItem._id,
+    formattedCost: (price.cost || 0).toLocaleString("en-ZA", {
       style: "currency",
       currency: "ZAR",
     }),
-    formattedSellingC: stockItem.price.sellingC.toLocaleString("en-ZA", {
+    formattedSellingC: (price.sellingC || 0).toLocaleString("en-ZA", {
       style: "currency",
       currency: "ZAR",
     }),
-    stockStatus: getStockStatus(stockItem.qty, stockItem.stockLevel),
-    totalValue: stockItem.qty * stockItem.price.cost,
-    formattedTotalValue: (stockItem.qty * stockItem.price.cost).toLocaleString(
-      "en-ZA",
-      {
-        style: "currency",
-        currency: "ZAR",
-      }
-    ),
+    stockStatus: getStockStatus(stockItem.qty || 0, stockLevel),
+    totalValue: (stockItem.qty || 0) * (price.cost || 0),
+    formattedTotalValue: (
+      (stockItem.qty || 0) * (price.cost || 0)
+    ).toLocaleString("en-ZA", {
+      style: "currency",
+      currency: "ZAR",
+    }),
   };
 }
 
@@ -134,7 +140,11 @@ async function getAllStockItems(request: NextRequest) {
   // Execute queries with supplier population
   const [stockItems, totalCount] = await Promise.all([
     StockItem.find(query)
-      .populate("supplier", "supplierCode name")
+      .populate({
+        path: "supplier",
+        model: Supplier,
+        select: "supplierCode name",
+      })
       .sort(sort)
       .skip(skip)
       .limit(limit)
@@ -160,15 +170,17 @@ async function getAllStockItems(request: NextRequest) {
   // Calculate summary statistics
   const summary = {
     totalItems: formattedItems.length,
-    totalQty: formattedItems.reduce((sum, item) => sum + item.qty, 0),
+    totalQty: formattedItems.reduce((sum, item) => sum + (item.qty || 0), 0),
     totalValue: formattedItems.reduce(
-      (sum, item) => sum + item.qty * item.price.cost,
+      (sum, item) => sum + (item.qty || 0) * (item.price?.cost || 0),
       0
     ),
     averageCost:
       formattedItems.length > 0
-        ? formattedItems.reduce((sum, item) => sum + item.price.cost, 0) /
-          formattedItems.length
+        ? formattedItems.reduce(
+            (sum, item) => sum + (item.price?.cost || 0),
+            0
+          ) / formattedItems.length
         : 0,
     lowStockCount: formattedItems.filter((item) => item.stockStatus === "Low")
       .length,
@@ -223,7 +235,12 @@ async function getSingleStockItem(id: string | null, code: string | null) {
     query.code = code.toUpperCase();
   }
 
-  const stockItem = await StockItem.findOne(query).populate("supplier").lean();
+  const stockItem = await StockItem.findOne(query)
+    .populate({
+      path: "supplier",
+      model: Supplier,
+    })
+    .lean();
 
   if (!stockItem) {
     return NextResponse.json(
@@ -500,7 +517,11 @@ export async function POST(request: NextRequest) {
 
     // Convert to plain object and format response
     const populatedItem = await StockItem.findById(stockItem._id)
-      .populate("supplier", "supplierCode name")
+      .populate({
+        path: "supplier",
+        model: Supplier,
+        select: "supplierCode name",
+      })
       .lean();
 
     const stockItemResponse = formatStockItemResponse(populatedItem);
@@ -808,7 +829,11 @@ export async function PUT(request: NextRequest) {
       { $set: updateObject },
       { new: true, runValidators: true }
     )
-      .populate("supplier", "supplierCode name")
+      .populate({
+        path: "supplier",
+        model: Supplier,
+        select: "supplierCode name",
+      })
       .lean();
 
     // Format response
@@ -1098,7 +1123,11 @@ export async function PATCH(request: NextRequest) {
       { $set: updateData },
       { new: true, runValidators: true }
     )
-      .populate("supplier", "supplierCode name")
+      .populate({
+        path: "supplier",
+        model: Supplier,
+        select: "supplierCode name",
+      })
       .lean();
 
     // Format response

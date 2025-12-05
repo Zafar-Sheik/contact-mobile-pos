@@ -41,6 +41,7 @@ import {
   HelpCircle,
   Menu,
 } from "lucide-react";
+import BackArrow from "../components/BackArrow";
 
 // Types matching stock-item API
 interface StockItem {
@@ -1483,6 +1484,7 @@ export default function QuotesPage() {
                 className="md:hidden p-2 hover:bg-gray-100 rounded-lg">
                 <Menu className="w-5 h-5" />
               </button>
+              <BackArrow />
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
                   Quotes

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import BackArrow from "../components/BackArrow";
 
 // Types based on your StockItem model
 interface StockItem {
@@ -494,9 +495,14 @@ export default function InvoicesPage() {
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
-            <p className="mt-1 text-gray-600">Manage your customer invoices</p>
+          <div className="flex items-center gap-3">
+            <BackArrow />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
+              <p className="mt-1 text-gray-600">
+                Manage your customer invoices
+              </p>
+            </div>
           </div>
           <button
             onClick={() => {

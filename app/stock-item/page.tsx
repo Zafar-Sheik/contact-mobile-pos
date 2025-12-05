@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import BackArrow from "../components/BackArrow";
 
 // Types
 interface StockItem {
@@ -1091,7 +1092,13 @@ export default function StockItemsPage() {
         <div className="mb-6">
           <div className="flex flex-col justify-between sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Stock Items</h1>
+              <div className="flex">
+                <BackArrow />
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Stock Items
+                </h1>
+              </div>
+
               <p className="mt-1 text-gray-600">
                 Manage your inventory and stock levels
               </p>

@@ -518,21 +518,6 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // TODO: Check if client has any associated records (invoices, payments, etc.)
-    // This prevents orphaned records. You'll need to import and check related models.
-    /*
-    const hasInvoices = await Invoice.exists({ client: id });
-    if (hasInvoices) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Cannot delete client with existing invoices' 
-        },
-        { status: 400 }
-      );
-    }
-    */
-
     // Delete client
     await Client.findByIdAndDelete(id);
 

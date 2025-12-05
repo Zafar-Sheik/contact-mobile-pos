@@ -1,7 +1,7 @@
 // app/api/grv/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import mongoose from "mongoose";
-import GRV, { IGRV } from "@/lib/models/GRV";
+import GRV from "@/lib/models/GRV";
 import StockItem from "@/lib/models/StockItem";
 import Supplier from "@/lib/models/Supplier";
 import connectDB from "@/lib/db";
@@ -30,10 +30,6 @@ const handleError = (error: any, message: string) => {
 // Helper to validate GRV data
 const validateGRVData = (data: any) => {
   const errors: string[] = [];
-
-  if (!data.GRVReference?.trim()) {
-    errors.push("GRVReference is required");
-  }
 
   if (!data.supplier) {
     errors.push("Supplier is required");
@@ -119,8 +115,8 @@ export async function GET(request: NextRequest) {
     // Execute query with population
     const [grvs, total] = await Promise.all([
       GRV.find(query)
-        .populate("supplier", "name code")
-        .populate("itemsReceived.stockItem", "code name")
+        .populate("supplier", "name supplierCode")
+        .populate("itemsReceived.stockItem", "code name category")
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -172,7 +168,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
 
-    // Validate required data
+    // Validate required data - Remove GRVReference validation
     const validationErrors = validateGRVData(body);
     if (validationErrors.length > 0) {
       return NextResponse.json(
@@ -209,53 +205,87 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate GRV reference if not provided
-    let grvReference = body.GRVReference;
-    if (!grvReference) {
-      const year = new Date().getFullYear().toString().slice(-2);
-      const month = (new Date().getMonth() + 1).toString().padStart(2, "0");
+    // Generate GRV reference (ALWAYS generate it, don't accept from frontend)
+    const year = new Date().getFullYear().toString().slice(-2);
+    const month = (new Date().getMonth() + 1).toString().padStart(2, "0");
 
-      const lastGRV = await GRV.findOne(
-        { GRVReference: { $regex: `^GRV${year}${month}` } },
-        {},
-        { sort: { GRVReference: -1 }, session }
-      );
+    const lastGRV = await GRV.findOne(
+      { GRVReference: { $regex: `^GRV${year}${month}` } },
+      {},
+      { sort: { GRVReference: -1 }, session }
+    );
 
-      let sequence = 1;
-      if (lastGRV) {
-        const lastSeq = parseInt(lastGRV.GRVReference.slice(-3));
-        sequence = lastSeq + 1;
-      }
-
-      grvReference = `GRV${year}${month}${sequence
-        .toString()
-        .padStart(3, "0")}`;
+    let sequence = 1;
+    if (lastGRV) {
+      const lastSeq = parseInt(lastGRV.GRVReference.slice(-3));
+      sequence = lastSeq + 1;
     }
+
+    const grvReference = `GRV${year}${month}${sequence
+      .toString()
+      .padStart(3, "0")}`;
+
+    // Calculate totals
+    const itemsReceived = body.itemsReceived.map((item: any) => ({
+      stockItem: new mongoose.Types.ObjectId(item.stockItem),
+      qty: Number(item.qty),
+      costPrice: Number(item.costPrice),
+      sellPrice: Number(item.sellPrice),
+    }));
+
+    const totalQty = itemsReceived.reduce(
+      (sum: number, item: any) => sum + item.qty,
+      0
+    );
+    const totalCost = itemsReceived.reduce(
+      (sum: number, item: any) => sum + item.qty * item.costPrice,
+      0
+    );
+    const totalValue = itemsReceived.reduce(
+      (sum: number, item: any) => sum + item.qty * item.sellPrice,
+      0
+    );
 
     // Create GRV data
     const grvData = {
-      ...body,
       GRVReference: grvReference,
+      supplier: new mongoose.Types.ObjectId(body.supplier),
       date: new Date(body.date),
-      itemsReceived: body.itemsReceived.map((item: any) => ({
-        stockItem: new mongoose.Types.ObjectId(item.stockItem),
-        qty: Number(item.qty),
-        costPrice: Number(item.costPrice),
-        sellPrice: Number(item.sellPrice),
-      })),
+      orderNumber: body.orderNumber || "",
+      notes: body.notes || "",
+      itemsReceived,
+      totalQty,
+      totalCost,
+      totalValue,
     };
 
     // Create GRV
     const grv = new GRV(grvData);
     await grv.save({ session });
 
+    // Update stock quantities
+    for (const item of itemsReceived) {
+      await StockItem.findByIdAndUpdate(
+        item.stockItem,
+        {
+          $inc: { qty: item.qty },
+          $set: {
+            "price.cost": item.costPrice,
+            "price.sellingC": item.sellPrice,
+          },
+        },
+        { session }
+      );
+    }
+
     // Commit transaction
     await session.commitTransaction();
 
     // Populate and return the created GRV
     const populatedGRV = await GRV.findById(grv._id)
-      .populate("supplier", "name code")
-      .populate("itemsReceived.stockItem", "code name category");
+      .populate("supplier", "name supplierCode")
+      .populate("itemsReceived.stockItem", "code name category")
+      .lean();
 
     return NextResponse.json(
       {
@@ -295,7 +325,7 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Validate required data
+    // Validate required data if items are being updated
     if (updateData.itemsReceived) {
       const validationErrors = validateGRVData(updateData);
       if (validationErrors.length > 0) {
@@ -320,9 +350,12 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // If items are being updated, revert old stock and update with new
+    // Initialize update object
+    const updateObject: any = {};
+
+    // If items are being updated, handle stock updates
     if (updateData.itemsReceived) {
-      // Revert old stock quantities and prices
+      // Revert old stock quantities
       for (const oldItem of existingGRV.itemsReceived) {
         await StockItem.findByIdAndUpdate(
           oldItem.stockItem,
@@ -349,22 +382,35 @@ export async function PUT(request: NextRequest) {
         );
       }
 
-      // Validate supplier exists if being updated
-      if (updateData.supplier) {
-        const supplier = await Supplier.findById(updateData.supplier).session(
-          session
-        );
-        if (!supplier) {
-          await session.abortTransaction();
-          return NextResponse.json(
-            { success: false, error: "Supplier not found" },
-            { status: 404 }
-          );
-        }
-      }
+      // Format new items
+      const itemsReceived = updateData.itemsReceived.map((item: any) => ({
+        stockItem: new mongoose.Types.ObjectId(item.stockItem),
+        qty: Number(item.qty),
+        costPrice: Number(item.costPrice),
+        sellPrice: Number(item.sellPrice),
+      }));
+
+      // Calculate new totals
+      const totalQty = itemsReceived.reduce(
+        (sum: number, item: any) => sum + item.qty,
+        0
+      );
+      const totalCost = itemsReceived.reduce(
+        (sum: number, item: any) => sum + item.qty * item.costPrice,
+        0
+      );
+      const totalValue = itemsReceived.reduce(
+        (sum: number, item: any) => sum + item.qty * item.sellPrice,
+        0
+      );
+
+      updateObject.itemsReceived = itemsReceived;
+      updateObject.totalQty = totalQty;
+      updateObject.totalCost = totalCost;
+      updateObject.totalValue = totalValue;
 
       // Update stock with new quantities and prices
-      for (const newItem of updateData.itemsReceived) {
+      for (const newItem of itemsReceived) {
         await StockItem.findByIdAndUpdate(
           newItem.stockItem,
           {
@@ -377,23 +423,38 @@ export async function PUT(request: NextRequest) {
           { session }
         );
       }
-
-      // Format items for update
-      updateData.itemsReceived = updateData.itemsReceived.map((item: any) => ({
-        stockItem: new mongoose.Types.ObjectId(item.stockItem),
-        qty: Number(item.qty),
-        costPrice: Number(item.costPrice),
-        sellPrice: Number(item.sellPrice),
-      }));
     }
 
-    // Format date if provided
+    // Handle other fields
+    if (updateData.supplier) {
+      // Validate supplier exists
+      const supplier = await Supplier.findById(updateData.supplier).session(
+        session
+      );
+      if (!supplier) {
+        await session.abortTransaction();
+        return NextResponse.json(
+          { success: false, error: "Supplier not found" },
+          { status: 404 }
+        );
+      }
+      updateObject.supplier = new mongoose.Types.ObjectId(updateData.supplier);
+    }
+
     if (updateData.date) {
-      updateData.date = new Date(updateData.date);
+      updateObject.date = new Date(updateData.date);
+    }
+
+    if (updateData.orderNumber !== undefined) {
+      updateObject.orderNumber = updateData.orderNumber;
+    }
+
+    if (updateData.notes !== undefined) {
+      updateObject.notes = updateData.notes;
     }
 
     // Update GRV
-    const updatedGRV = await GRV.findByIdAndUpdate(id, updateData, {
+    const updatedGRV = await GRV.findByIdAndUpdate(id, updateObject, {
       new: true,
       runValidators: true,
       session,
@@ -404,8 +465,9 @@ export async function PUT(request: NextRequest) {
 
     // Populate and return the updated GRV
     const populatedGRV = await GRV.findById(updatedGRV._id)
-      .populate("supplier", "name code")
-      .populate("itemsReceived.stockItem", "code name category");
+      .populate("supplier", "name supplierCode")
+      .populate("itemsReceived.stockItem", "code name category")
+      .lean();
 
     return NextResponse.json({
       success: true,
@@ -447,7 +509,9 @@ export async function DELETE(request: NextRequest) {
     session.startTransaction();
 
     // Find GRV
-    const grv = await GRV.findById(id).session(session);
+    const grv = await GRV.findById(id)
+      .populate("itemsReceived.stockItem")
+      .session(session);
     if (!grv) {
       await session.abortTransaction();
       return NextResponse.json(
@@ -506,7 +570,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Only allow updates to specific fields in PATCH
-    const allowedFields = ["notes", "orderNumber", "pdf", "date"];
+    const allowedFields = ["notes", "orderNumber", "pdf"];
     const filteredUpdate: any = {};
 
     Object.keys(updateData).forEach((key) => {
@@ -515,9 +579,9 @@ export async function PATCH(request: NextRequest) {
       }
     });
 
-    // Format date if provided
-    if (filteredUpdate.date) {
-      filteredUpdate.date = new Date(filteredUpdate.date);
+    // Format date if provided (special handling)
+    if (updateData.date) {
+      filteredUpdate.date = new Date(updateData.date);
     }
 
     // Update GRV
@@ -535,8 +599,9 @@ export async function PATCH(request: NextRequest) {
 
     // Populate and return the updated GRV
     const populatedGRV = await GRV.findById(updatedGRV._id)
-      .populate("supplier", "name code")
-      .populate("itemsReceived.stockItem", "code name category");
+      .populate("supplier", "name supplierCode")
+      .populate("itemsReceived.stockItem", "code name category")
+      .lean();
 
     return NextResponse.json({
       success: true,

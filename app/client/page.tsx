@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import BackArrow from "../components/BackArrow";
 
 // Types
 interface Client {
@@ -94,211 +95,214 @@ const ClientModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600">
-            ✕
-          </button>
-        </div>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+        <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
 
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            await onSubmit(formData);
-          }}
-          className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Customer Code *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.customerCode}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  customerCode: e.target.value.toUpperCase(),
-                })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-              placeholder="CLIENT001"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Company Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.companyName}
-              onChange={(e) =>
-                setFormData({ ...formData, companyName: e.target.value })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-              placeholder="ABC Enterprises"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Owner Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.owner}
-              onChange={(e) =>
-                setFormData({ ...formData, owner: e.target.value })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-              placeholder="John Smith"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Address *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.address}
-              onChange={(e) =>
-                setFormData({ ...formData, address: e.target.value })
-              }
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-              placeholder="123 Main Street, Johannesburg"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Email *
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-                placeholder="info@company.co.za"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Cell No *
-              </label>
-              <input
-                type="tel"
-                required
-                value={formData.cellNo}
-                onChange={(e) =>
-                  setFormData({ ...formData, cellNo: e.target.value })
-                }
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-                placeholder="0831234567"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                VAT Number
-              </label>
-              <input
-                type="text"
-                value={formData.VATNo}
-                onChange={(e) =>
-                  setFormData({ ...formData, VATNo: e.target.value })
-                }
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-                placeholder="4123456789"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Registration Number
-              </label>
-              <input
-                type="text"
-                value={formData.regNo}
-                onChange={(e) =>
-                  setFormData({ ...formData, regNo: e.target.value })
-                }
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-                placeholder="1999/012345/07"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Price Category *
-              </label>
-              <select
-                value={formData.priceCategory}
-                onChange={(e) =>
-                  setFormData({ ...formData, priceCategory: e.target.value })
-                }
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none">
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="D">D</option>
-                <option value="E">E</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Credit Limit *
-              </label>
-              <input
-                type="number"
-                required
-                min="0"
-                step="0.01"
-                value={formData.creditLimit}
-                onChange={(e) =>
-                  setFormData({ ...formData, creditLimit: e.target.value })
-                }
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
-                placeholder="10000"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end space-x-3">
             <button
-              type="button"
               onClick={onClose}
-              className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-              {loading ? "Saving..." : "Save"}
+              className="text-gray-400 hover:text-gray-600">
+              ✕
             </button>
           </div>
-        </form>
+
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              await onSubmit(formData);
+            }}
+            className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Customer Code *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.customerCode}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    customerCode: e.target.value.toUpperCase(),
+                  })
+                }
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                placeholder="CLIENT001"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Company Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.companyName}
+                onChange={(e) =>
+                  setFormData({ ...formData, companyName: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                placeholder="ABC Enterprises"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Owner Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.owner}
+                onChange={(e) =>
+                  setFormData({ ...formData, owner: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                placeholder="John Smith"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Address *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                placeholder="123 Main Street, Johannesburg"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="info@company.co.za"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Cell No *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={formData.cellNo}
+                  onChange={(e) =>
+                    setFormData({ ...formData, cellNo: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="0831234567"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  VAT Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.VATNo}
+                  onChange={(e) =>
+                    setFormData({ ...formData, VATNo: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="4123456789"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Registration Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.regNo}
+                  onChange={(e) =>
+                    setFormData({ ...formData, regNo: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="1999/012345/07"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Price Category *
+                </label>
+                <select
+                  value={formData.priceCategory}
+                  onChange={(e) =>
+                    setFormData({ ...formData, priceCategory: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none">
+                  <option value="A">A</option>
+                  <option value="B">B</option>
+                  <option value="C">C</option>
+                  <option value="D">D</option>
+                  <option value="E">E</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Credit Limit *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="0.01"
+                  value={formData.creditLimit}
+                  onChange={(e) =>
+                    setFormData({ ...formData, creditLimit: e.target.value })
+                  }
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none"
+                  placeholder="10000"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                {loading ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -524,7 +528,11 @@ export default function ClientsPage() {
         <div className="mb-6">
           <div className="flex flex-col justify-between sm:flex-row sm:items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
+              <div className="flex">
+                <BackArrow />
+                <h1 className="text-2xl font-bold text-gray-900">Clients</h1>
+              </div>
+
               <p className="mt-1 text-gray-600">Manage your client accounts</p>
             </div>
             <button

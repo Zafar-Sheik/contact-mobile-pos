@@ -20,13 +20,18 @@ import {
   Package,
   AlertCircle,
 } from "lucide-react";
+import BackArrow from "../components/BackArrow";
 
 // Types based on your models
 interface StockItem {
   _id: string;
   name: string;
   code: string;
-  unitPrice: number;
+  price: {
+    cost: number;
+    sellingC: number;
+    VAT: number;
+  };
   qty: number;
 }
 
@@ -104,7 +109,7 @@ export default function WorkflowPage() {
       setLoading(true);
       const params = new URLSearchParams();
       if (statusFilter) params.append("status", statusFilter);
-      if (clientFilter) params.append("clientId", clientFilter);
+      if (clientFilter) params.append("client", clientFilter);
       if (searchTerm) params.append("search", searchTerm);
 
       console.log("Fetching workflows with params:", params.toString());
@@ -389,34 +394,21 @@ export default function WorkflowPage() {
     );
   });
 
-  // Test API connection
-  const testApiConnection = async () => {
-    try {
-      console.log("Testing API connection...");
-      const response = await fetch("/api/workflow");
-      console.log("Test response:", response.status, response.statusText);
-      const data = await response.json();
-      console.log("Test data:", data);
-    } catch (error) {
-      console.error("API test failed:", error);
-    }
-  };
-
-  // Uncomment to test on load
-  // useEffect(() => {
-  //   testApiConnection();
-  // }, []);
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-          Workflow Management
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Manage your workflows and track progress
-        </p>
+        <div className="flex items-center gap-3">
+          <BackArrow />
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+              Workflow Management
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Manage your workflows and track progress
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Controls */}
@@ -453,15 +445,6 @@ export default function WorkflowPage() {
             className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
             <Plus className="w-5 h-5" />
             <span>New Workflow</span>
-          </button>
-
-          {/* Debug button - remove in production */}
-          <button
-            onClick={testApiConnection}
-            className="flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 text-sm"
-            title="Test API Connection">
-            <AlertCircle className="w-4 h-4" />
-            <span>Test API</span>
           </button>
         </div>
 
@@ -638,7 +621,7 @@ export default function WorkflowPage() {
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4 text-gray-400" />
                           <span className="text-sm text-gray-900">
-                            R {workflow.estCost.toLocaleString()}
+                            R {(workflow.estCost || 0).toLocaleString()}
                           </span>
                         </div>
                       </td>
@@ -885,7 +868,9 @@ export default function WorkflowPage() {
                                     key={stockItem._id}
                                     value={stockItem._id}>
                                     {stockItem.name} ({stockItem.code}) - R
-                                    {stockItem.unitPrice.toLocaleString()}
+                                    {(
+                                      stockItem.price?.sellingC || 0
+                                    ).toLocaleString()}
                                   </option>
                                 ))}
                               </select>
@@ -988,7 +973,7 @@ export default function WorkflowPage() {
                 </p>
                 <p className="text-sm text-gray-700">
                   <span className="font-medium">Cost:</span> R{" "}
-                  {selectedWorkflow.estCost.toLocaleString()}
+                  {(selectedWorkflow.estCost || 0).toLocaleString()}
                 </p>
               </div>
               <div className="flex justify-end gap-3">
